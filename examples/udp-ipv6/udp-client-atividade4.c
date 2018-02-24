@@ -61,12 +61,8 @@ static struct uip_udp_conn *client_conn;
 PROCESS(udp_client_process, "UDP client process");
 AUTOSTART_PROCESSES(&resolv_process,&udp_client_process);
 /*---------------------------------------------------------------------------*/
-static char getLedsState(){
-    return leds_get();
-}
-
-static void setLeds(char state){
-    PRINTF("Setando Leds para %c\n", state);
+static void setLeds(int state){
+    PRINTF("Setando Leds para %i\n", state);
     leds_set(state);
     //leds_toggle(LEDS_RED);
 }
@@ -86,21 +82,32 @@ tcpip_handler(void)
             uip_ipaddr_copy(&client_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
             client_conn->rport = UIP_UDP_BUF->destport;
             buf[0] = LED_STATE;
-            buf[1] = getLedsState();
-            PRINTF("Enviando LED_STATE %c para [", buf[1]);
+            buf[1] = leds_get();
+            PRINTF("Enviando LED_STATE %i para [", buf[1]);
             PRINT6ADDR(&client_conn->ripaddr);
             PRINTF("]: %u\n", UIP_HTONS(client_conn->rport));
-            uip_udp_packet_send(client_conn, buf, sizeof(buf));
+            uip_udp_packet_send(client_conn, buf, 2*sizeof(buf[0]));//
             break;
         case LED_SET_STATE:
             PRINTF("Recebido LED_SET_STATE de [");
             PRINT6ADDR(&client_conn->ripaddr);
             PRINTF("]: %u\n", UIP_HTONS(client_conn->rport));
             setLeds(dados[1]);
+            //responde confirmando com o estado dos leds:
+            buf[0] = LED_STATE;
+            buf[1] = leds_get();
+            PRINTF("Confirmando LED_STATE %i para [", buf[1]);
+            PRINT6ADDR(&client_conn->ripaddr);
+            PRINTF("]: %u\n", UIP_HTONS(client_conn->rport));
+            uip_udp_packet_send(client_conn, buf, 2*sizeof(buf[0]));//
             break;
         default:
             PRINTF("Comando inválido!");
-            //TODO
+            int i = 0;
+            for (i=0; i<uip_datalen(); i++){
+                PRINTF("0x%02X" + dados[i]);
+            }
+            PRINTF("\n");
         }
     }
 }
@@ -225,8 +232,10 @@ PROCESS_THREAD(udp_client_process, ev, data)
       }
   }
 #else
-  //c_onfigures the destination IPv6 address
-  uip_ip6addr(&ipaddr, 0xfd00, 0, 0, 0, 0x212, 0x4b00, 0x791, 0xb681);
+  //configures the destination IPv6 address
+//  uip_ip6addr(&ipaddr, 0x2804, 0x7f4, 0x3b80, 0xa4f1, 0xf7f, 0x9d3f, 0xec72, 0x33ac);
+//  uip_ip6addr(&ipaddr, 0x2804, 0x7f4, 0x3b80, 0xa4f1, 0xcd2f, 0xe2e1, 0xa865, 0xcd7e);
+  uip_ip6addr(&ipaddr, 0x2804, 0x7f4, 0x3b80, 0xa4f1, 0xa7d5, 0x85c9, 0xcbe4, 0x166b);
 #endif
   /* new connection with remote host */
   client_conn = udp_new(&ipaddr, UIP_HTONS(CONN_PORT), NULL);
