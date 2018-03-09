@@ -40,6 +40,8 @@
 #include "net/ip/resolv.h"
 #include "net/rime/rime.h"
 #include "simple-udp.h"
+#include "board-peripherals.h"
+#include "ti-lib.h"
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
@@ -53,6 +55,12 @@
 #define REQUEST_RETRIES 4
 #define DEFAULT_SEND_INTERVAL		(10 * CLOCK_SECOND)
 #define REPLY_TIMEOUT (3 * CLOCK_SECOND)
+
+//protocolo de comandos
+#define LED_GET_STATE 10
+#define LED_SET_STATE 11
+#define LED_STATE 12
+#define LED_VERDE (IOID_29)
 
 static struct mqtt_sn_connection mqtt_sn_c;
 static char mqtt_client_id[17];
@@ -146,6 +154,25 @@ publish_receiver(struct mqtt_sn_connection *mqc, const uip_ipaddr_t *source_addr
     //the new message interval will be read from the first byte of the received packet
     //send_interval = (uint8_t)incoming_packet.data[0] * CLOCK_CONF_SECOND;
       send_interval = 10 * CLOCK_CONF_SECOND;
+
+      //Acende ou apaga o led, ou solicita o estado do led, de acordo com o valor recebido na msg
+      int comando = atoi(incoming_packet.data);
+      printf("comando: %i\n", comando);
+      switch(comando){
+      case LED_GET_STATE:
+          //TODO pub led_state
+          //GPIO_readDio(LED_VERDE);
+          break;
+      case LED_SET_STATE:
+          printf("LED_SET_STATE: %i\n", comando);
+          GPIO_toggleDio(LED_VERDE);
+          //TODO pub led_state
+          //GPIO_readDio(LED_VERDE);
+          break;
+      default:
+          PRINTF("Comando inválido!");
+      }
+
   } else {
     printf("unknown publication received\n");
   }
@@ -186,11 +213,11 @@ PROCESS_THREAD(publish_process, ev, data)
   send_interval = DEFAULT_SEND_INTERVAL;
   memcpy(pub_topic,device_id,16);
   printf("registering topic\n");
-  registration_tries =0;
+  registration_tries = 0;
   while (registration_tries < REQUEST_RETRIES)
   {
 
-    reg_topic_msg_id = mqtt_sn_register_try(rreq,&mqtt_sn_c,pub_topic,REPLY_TIMEOUT);
+    reg_topic_msg_id = mqtt_sn_register_try(rreq, &mqtt_sn_c, pub_topic, REPLY_TIMEOUT);
     PROCESS_WAIT_EVENT_UNTIL(mqtt_sn_request_returned(rreq));
     if (mqtt_sn_request_success(rreq)) {
       registration_tries = 4;
@@ -214,7 +241,7 @@ PROCESS_THREAD(publish_process, ev, data)
       printf("publishing at topic: %s -> msg: %s\n", pub_topic, buf);
       message_number++;
       buf_len = strlen(buf);
-      mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id,MQTT_SN_TOPIC_TYPE_NORMAL,buf, buf_len,qos,retain);
+      mqtt_sn_send_publish(&mqtt_sn_c, publisher_topic_id, MQTT_SN_TOPIC_TYPE_NORMAL, buf, buf_len, qos, retain);
       /*if (ctimer_expired(&(mqtt_sn_c.receive_timer)))
       {
           process_post(&example_mqttsn_process, (process_event_t)(NULL), (process_event_t)(41));
@@ -235,12 +262,12 @@ PROCESS_THREAD(ctrl_subscription_process, ev, data)
   static mqtt_sn_subscribe_request *sreq = &subreq;
   PROCESS_BEGIN();
   subscription_tries = 0;
-  memcpy(ctrl_topic,device_id,16);
+  memcpy(ctrl_topic, device_id, 16);
   printf("requesting subscription\n");
   while(subscription_tries < REQUEST_RETRIES)
   {
       printf("subscribing... topic: %s\n", ctrl_topic);
-      ctrl_topic_msg_id = mqtt_sn_subscribe_try(sreq,&mqtt_sn_c,ctrl_topic,0,REPLY_TIMEOUT);
+      ctrl_topic_msg_id = mqtt_sn_subscribe_try(sreq, &mqtt_sn_c, ctrl_topic, 0, REPLY_TIMEOUT);
 
       PROCESS_WAIT_EVENT_UNTIL(mqtt_sn_request_returned(sreq));
       if (mqtt_sn_request_success(sreq)) {
@@ -293,7 +320,7 @@ set_connection_address(uip_ipaddr_t *ipaddr)
 {
 #ifndef UDP_CONNECTION_ADDR
 #if RESOLV_CONF_SUPPORTS_MDNS
-#define UDP_CONNECTION_ADDR       sctdf.com.br
+#define UDP_CONNECTION_ADDR       pksr.eletrica.eng.br //sctdf.com.br
 #elif UIP_CONF_ROUTER
 #define UDP_CONNECTION_ADDR       fd00:0:0:0:0212:7404:0004:0404
 #else
@@ -340,6 +367,9 @@ PROCESS_THREAD(example_mqttsn_process, ev, data)
   char contiki_hostname[16];
 
   PROCESS_BEGIN();
+
+  IOCPinTypeGpioOutput(LED_VERDE);
+  GPIO_setDio(LED_VERDE);
 
 #if RESOLV_CONF_SUPPORTS_MDNS
 #ifdef CONTIKI_CONF_CUSTOM_HOSTNAME
