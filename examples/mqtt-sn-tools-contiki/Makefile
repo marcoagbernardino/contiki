@@ -1,4 +1,4 @@
-all: example
+all: example-tempcontrol
 PROJECT_SOURCEFILES += mqtt-sn.c
 
 WITH_UIP6=1

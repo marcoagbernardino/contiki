@@ -2,6 +2,7 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
+#define RF_CHANNEL (17) //canal do border router definido manualmente no 6lb
 ////when streaming, the number of frames that will be sent per second
 //#define STREAM_FRAMES_PER_SECOND 2
 ////the number of 16 bit samples in each frame
