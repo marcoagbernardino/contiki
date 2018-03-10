@@ -56,6 +56,9 @@
 
 
 /* configuration for the slipradio/network driver */
+
+#define RF_CHANNEL (17) //canal do border router definido manualmente no 6lbr
+
 #undef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC     nullmac_driver
 
