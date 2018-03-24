@@ -72,9 +72,12 @@ extern resource_t
   res_event,
   res_sub,
   res_b1_sep_b2,
-  res_utfprwsn;
+//  res_utfprwsn,
+  res_utfprwsn_echo,
+  res_temp_control_leds,
+  res_temp_control_cooler;
 #if PLATFORM_HAS_LEDS
-extern resource_t res_leds, res_toggle;
+extern resource_t res_leds, res_toggle, res_toggle1;
 #endif
 #if PLATFORM_HAS_LIGHT
 #include "dev/light-sensor.h"
@@ -101,6 +104,25 @@ extern resource_t res_sht11;
 #endif
 */
 
+/*
+static void
+print_local_addresses(void)
+{
+  int i;
+  uint8_t state;
+
+  PRINTF("Server IPv6 addresses: ");
+  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+    state = uip_ds6_if.addr_list[i].state;
+    if(uip_ds6_if.addr_list[i].isused && RF_CHANNEL
+       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+      PRINTF("\n");
+    }
+  }
+}
+*/
+
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
@@ -119,10 +141,14 @@ PROCESS_THREAD(er_example_server, ev, data)
   PRINTF("PAN ID: 0x%04X\n", IEEE802154_PANID);
 #endif
 
+
   PRINTF("uIP buffer: %u\n", UIP_BUFSIZE);
   PRINTF("LL header: %u\n", UIP_LLH_LEN);
   PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
   PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
+
+
+  //print_local_addresses();
 
   /* Initialize the REST engine. */
   rest_init_engine();
@@ -133,8 +159,10 @@ PROCESS_THREAD(er_example_server, ev, data)
    * All static variables are the same for each URI path.
    */
   rest_activate_resource(&res_hello, "test/hello");
-  rest_activate_resource(&res_utfprwsn, "utfprwsn/echo");
-/*  rest_activate_resource(&res_mirror, "debug/mirror"); */
+  rest_activate_resource(&res_utfprwsn_echo, "utfprwsn/echo");
+  rest_activate_resource(&res_temp_control_leds, "tempcontrol/leds");
+  rest_activate_resource(&res_temp_control_cooler, "tempcontrol/cooler");
+  /*  rest_activate_resource(&res_mirror, "debug/mirror"); */
 /*  rest_activate_resource(&res_chunks, "test/chunks"); */
 /*  rest_activate_resource(&res_separate, "test/separate"); */
   rest_activate_resource(&res_push, "test/push");
@@ -144,6 +172,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 #if PLATFORM_HAS_LEDS
 /*  rest_activate_resource(&res_leds, "actuators/leds"); */
   rest_activate_resource(&res_toggle, "actuators/toggle");
+  rest_activate_resource(&res_toggle1, "actuators/toggle1");
 #endif
 #if PLATFORM_HAS_LIGHT
   rest_activate_resource(&res_light, "sensors/light"); 

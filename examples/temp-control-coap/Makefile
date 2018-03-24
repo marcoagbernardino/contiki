@@ -1,5 +1,4 @@
-all: er-example-server 
-#er-example-client
+all: temp-control-coap
 # use target "er-plugtest-server" explicitly when requried 
 
 CONTIKI=../..
@@ -9,15 +8,7 @@ CFLAGS += -g
 
 # automatically build RESTful resources
 REST_RESOURCES_DIR = ./resources
-ifndef TARGET
 REST_RESOURCES_FILES = $(notdir $(shell find $(REST_RESOURCES_DIR) -name '*.c'))
-else
-ifeq ($(TARGET), native)
-REST_RESOURCES_FILES = $(notdir $(shell find $(REST_RESOURCES_DIR) -name '*.c'))
-else
-REST_RESOURCES_FILES = $(notdir $(shell find $(REST_RESOURCES_DIR) -name '*.c' ! -name 'res-plugtest*'))
-endif
-endif
 
 PROJECTDIRS += $(REST_RESOURCES_DIR)
 PROJECT_SOURCEFILES += $(REST_RESOURCES_FILES)
@@ -39,7 +30,7 @@ include $(CONTIKI)/Makefile.include
 # minimal-net target is currently broken in Contiki
 ifeq ($(TARGET), minimal-net)
 CFLAGS += -DHARD_CODED_ADDRESS=\"fdfd::10\"
-${info INFO: er-example compiling with large buffers}
+${info INFO: temp-control-coap compiling with large buffers}
 CFLAGS += -DUIP_CONF_BUFFER_SIZE=1300
 CFLAGS += -DREST_MAX_CHUNK_SIZE=1024
 CFLAGS += -DCOAP_MAX_HEADER_SIZE=176
